@@ -17,6 +17,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import parseaddr
+from enum import Enum
 from importlib.metadata import metadata
 from json.decoder import JSONDecodeError
 from logging import LogRecord, handlers
@@ -776,7 +777,35 @@ def resolve_movie_provider_urls(
     return None, None
 
 
+class DryRunPresence(AioPresence):
+    """Logs each activity instead of sending it, so Discord needn't be running."""
+
+    def __init__(self, client_id: str) -> None:
+        super().__init__(client_id)  # type: ignore[no-untyped-call]
+
+    async def connect(self) -> None:
+        logger.info('Dry Run Enabled (Activities Are Logged, Not Sent to Discord)')
+
+    async def update(self, *args: Any, **kwargs: Any) -> None:
+        fields = []
+        for key, value in kwargs.items():
+            if value is None:
+                continue
+            if isinstance(value, Enum):
+                value = value.name
+            fields.append(f'{key}={value!r}')
+        logger.info(f'Dry Run Activity: {", ".join(fields)}')
+
+    async def clear(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 def check_discord_connect(discord_rpc: AioPresence) -> bool:
+    if isinstance(discord_rpc, DryRunPresence):
+        return True
     reader = getattr(discord_rpc, 'sock_reader', None)
     writer = getattr(discord_rpc, 'sock_writer', None)
     if reader is None or writer is None:
@@ -1653,7 +1682,11 @@ async def monitor_activity(
     stale_grace_period: int,
 ) -> None:
     client_id = config.get('DISCORD_CLIENT_ID', CLIENT_ID)
-    discord_rpc = AioPresence(client_id)
+    discord_rpc: AioPresence
+    if config.getboolean('DRY_RUN', False):
+        discord_rpc = DryRunPresence(client_id)
+    else:
+        discord_rpc = AioPresence(client_id)
     await await_discord_connect(discord_rpc, polling_rate)
 
     timeout = aiohttp.ClientTimeout(5.0)

@@ -92,6 +92,7 @@ TOOLTIPS = {
     'HIDE_MEDIA_TITLE': 'Hides the media title from your Discord status using your server name or "Jellyfin".',
     'ARTIST_IN_STATUS': 'Prioritizes the artist (and album) in your Discord status instead of the track name.',
     'IMDB_EXTERNAL_LINKS': 'Prioritizes IMDb for external links over other metadata providers.',
+    'DRY_RUN': 'Logs each activity instead of sending it to Discord. Discord does not need to be running.',
     'TITLE_STRIP_REGEX': 'Regular expression removed from media titles before they are shown in Discord (e.g., \\s*\\[[^\\]]*\\]$ for a trailing [suffix]).',
     'POLLING_RATE': 'Interval in seconds to poll Jellyfin sessions, or the minimum delay between WebSocket events.',
     'SEEK_THRESHOLD': "Playback jump in seconds required to resync Discord's elapsed timer when seeking.",
@@ -771,6 +772,7 @@ class RPCWindow(QWidget):
         self.create_checkbox(col3, 'HIDE_MEDIA_TITLE', 'Hide Media Title from Status')
         self.create_checkbox(col3, 'ARTIST_IN_STATUS', 'Prefer Artist in Music Status')
         self.create_checkbox(col3, 'IMDB_EXTERNAL_LINKS', 'Prefer IMDb External Links')
+        self.create_checkbox(col3, 'DRY_RUN', 'Dry Run (Log Without Updating)')
         self.entries['TITLE_STRIP_REGEX'] = self.create_labeled_entry(
             col3,
             'Title Strip Regex',
@@ -985,6 +987,7 @@ class RPCWindow(QWidget):
             ('HIDE_MEDIA_TITLE', False),
             ('ARTIST_IN_STATUS', False),
             ('IMDB_EXTERNAL_LINKS', False),
+            ('DRY_RUN', False),
             ('ALWAYS_USE_TMDB', False),
             ('TEXTLESS_POSTERS', False),
             ('SEASON_OVER_SERIES', False),
