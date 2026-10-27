@@ -279,14 +279,23 @@ async def await_jellyfin_connect(
 
     while True:
         try:
-            async with session.get(f'{jf_host}/Users', headers=headers) as response:
-                response.raise_for_status()
-                users_data = await response.json()
-
+            # Prefer the token's own user: proxies such as Jellyswarrm list backend IDs in
+            # /Users that they reject as userId. A server API key has no user, so fall back.
             user_id = None
-            for user in users_data:
-                if jf_username == user['Name']:
-                    user_id = user['Id']
+            async with session.get(f'{jf_host}/Users/Me', headers=headers) as response:
+                if response.ok:
+                    me_data = await response.json()
+                    if jf_username == me_data.get('Name'):
+                        user_id = me_data['Id']
+
+            if user_id is None:
+                async with session.get(f'{jf_host}/Users', headers=headers) as response:
+                    response.raise_for_status()
+                    users_data = await response.json()
+
+                for user in users_data:
+                    if jf_username == user['Name']:
+                        user_id = user['Id']
 
             if user_id is None:
                 logger.error(f'Jellyfin User Not Found: {jf_username}')
