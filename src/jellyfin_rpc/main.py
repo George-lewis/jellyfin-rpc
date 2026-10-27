@@ -111,6 +111,38 @@ def sanitize_broadcast_title(title_str: str | None) -> str | None:
     return clean_str or title_str
 
 
+def compile_title_pattern(config: SectionProxy) -> re.Pattern[str] | None:
+    if not (pattern_str := config.get('TITLE_STRIP_REGEX', '')):
+        return None
+    try:
+        return re.compile(pattern_str)
+    except re.error as e:
+        logger.warning(f'Invalid Title Strip Regex ({e})')
+        return None
+
+
+def strip_title(title_str: str, pattern: re.Pattern[str]) -> str:
+    clean_str = re.sub(r'\s+', ' ', pattern.sub('', title_str)).strip()
+    return clean_str or title_str
+
+
+def strip_media_titles(
+    media_dict: dict[str, Any], pattern: re.Pattern[str] | None
+) -> dict[str, Any]:
+    if pattern is None:
+        return media_dict
+    clean_dict = dict(media_dict)
+    for key in ('Name', 'SeriesName', 'SeasonName', 'Album', 'AlbumArtist', 'ChannelName'):
+        if isinstance(clean_dict.get(key), str):
+            clean_dict[key] = strip_title(clean_dict[key], pattern)
+    if isinstance(artists := clean_dict.get('Artists'), list):
+        clean_dict['Artists'] = [
+            strip_title(artist, pattern) if isinstance(artist, str) else artist
+            for artist in artists
+        ]
+    return clean_dict
+
+
 def get_lang_code(lang_str: str) -> str | None:
     if not (lang_str := lang_str.strip()):
         return None
@@ -884,6 +916,7 @@ async def sync_presence(
     hide_media_title = config.getboolean('HIDE_MEDIA_TITLE', False)
     artist_in_status = config.getboolean('ARTIST_IN_STATUS', False)
     imdb_external_urls = config.getboolean('IMDB_EXTERNAL_LINKS', False)
+    title_pattern = compile_title_pattern(config)
 
     user_id, server_name = await await_jellyfin_connect(
         jf_session, config, ini_path, show_server_name, polling_rate
@@ -1028,7 +1061,7 @@ async def sync_presence(
                 rpc_state.has_pending_update = True
 
         if session_dict:
-            media_dict = session_dict['NowPlayingItem']
+            media_dict = strip_media_titles(session_dict['NowPlayingItem'], title_pattern)
             media_type = media_dict['Type']
             media_id = media_dict['Id']
             media_changed = media_id != cached_media_id
@@ -1071,7 +1104,9 @@ async def sync_presence(
                             ) as response:
                                 response.raise_for_status()
                                 channel = await response.json()
-                                cached_program_dict = channel.get('CurrentProgram', {})
+                                cached_program_dict = strip_media_titles(
+                                    channel.get('CurrentProgram', {}), title_pattern
+                                )
                         except (aiohttp.ClientError, TimeoutError) as e:
                             logger.error(f'Program Retrieval Network Error ({type(e).__name__})')
                             logger.debug(type(e).__name__, exc_info=True)

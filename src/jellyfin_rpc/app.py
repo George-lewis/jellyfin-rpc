@@ -92,6 +92,7 @@ TOOLTIPS = {
     'HIDE_MEDIA_TITLE': 'Hides the media title from your Discord status using your server name or "Jellyfin".',
     'ARTIST_IN_STATUS': 'Prioritizes the artist (and album) in your Discord status instead of the track name.',
     'IMDB_EXTERNAL_LINKS': 'Prioritizes IMDb for external links over other metadata providers.',
+    'TITLE_STRIP_REGEX': 'Regular expression removed from media titles before they are shown in Discord (e.g., \\s*\\[[^\\]]*\\]$ for a trailing [suffix]).',
     'POLLING_RATE': 'Interval in seconds to poll Jellyfin sessions, or the minimum delay between WebSocket events.',
     'SEEK_THRESHOLD': "Playback jump in seconds required to resync Discord's elapsed timer when seeking.",
 }
@@ -770,6 +771,12 @@ class RPCWindow(QWidget):
         self.create_checkbox(col3, 'HIDE_MEDIA_TITLE', 'Hide Media Title from Status')
         self.create_checkbox(col3, 'ARTIST_IN_STATUS', 'Prefer Artist in Music Status')
         self.create_checkbox(col3, 'IMDB_EXTERNAL_LINKS', 'Prefer IMDb External Links')
+        self.entries['TITLE_STRIP_REGEX'] = self.create_labeled_entry(
+            col3,
+            'Title Strip Regex',
+            placeholder='Leave Blank to Disable',
+            tooltip=WRAPPED_TOOLTIPS['TITLE_STRIP_REGEX'],
+        )
 
         col3.addWidget(self.create_header('System Settings'))
         checkbox_startup = QCheckBox('Open Jellyfin RPC on Startup')
@@ -949,6 +956,7 @@ class RPCWindow(QWidget):
         self.entries['JELLYFIN_USERNAME'].widget.setText(self.config.get('JELLYFIN_USERNAME', ''))
         self.entries['TMDB_API_KEY'].widget.setText(self.config.get('TMDB_API_KEY', ''))
         self.entries['TMDB_LANGUAGES'].widget.setText(self.config.get('TMDB_LANGUAGES', ''))
+        self.entries['TITLE_STRIP_REGEX'].widget.setText(self.config.get('TITLE_STRIP_REGEX', ''))
 
         library_filter_mode = self.config.get('LIBRARY_FILTER_MODE', 'DENYLIST').capitalize()
         library_filter_mode = {'Blacklist': 'Denylist', 'Whitelist': 'Allowlist'}.get(
@@ -1015,6 +1023,7 @@ class RPCWindow(QWidget):
             'JELLYFIN_USERNAME',
             'TMDB_API_KEY',
             'TMDB_LANGUAGES',
+            'TITLE_STRIP_REGEX',
         ]:
             config_parser.set('DEFAULT', key, self.entries[key].widget.text())
 

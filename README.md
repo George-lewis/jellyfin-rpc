@@ -77,6 +77,7 @@ If running in headless/CLI mode, configuration is loaded from an INI file. If yo
 | `HIDE_MEDIA_TITLE` | `false` | Hides the media title from your Discord status using your server name or "Jellyfin". |
 | `ARTIST_IN_STATUS` | `false` | Prioritizes the artist (and album) in your Discord status instead of the track name. |
 | `IMDB_EXTERNAL_LINKS` | `false` | Prioritizes IMDb for external links over other metadata providers. |
+| `TITLE_STRIP_REGEX` | — | [Python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) removed from media titles (names, series, albums, artists, channels) before they are shown in Discord or used for TMDB and MusicBrainz searches. For example, `\s*\[[^\]]*\]$` removes a trailing `[suffix]` such as the server tag added by Jellyswarrm. |
 | `POLLING_RATE` | `5` | Interval in seconds to poll Jellyfin sessions, or the minimum delay between WebSocket events (if your Jellyfin server and reverse proxy support WebSockets). |
 | `SEEK_THRESHOLD` | `10` | Playback jump in seconds required to resync Discord's elapsed timer when seeking. |
 | `SESSION_TIMEOUT` | `2` | Delay in seconds before clearing the activity. Smooths transitions between media items. |
